@@ -17,8 +17,8 @@
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <!-- 归档文件命名模式：按日期和序号，自动压缩为gz -->
             <fileNamePattern>${LOG_ARCHIVE}</fileNamePattern>
-            <!-- 单个日志文件最大100MB -->
-            <maxFileSize>100MB</maxFileSize>
+            <!-- 单个日志文件最大10MB -->
+            <maxFileSize>10MB</maxFileSize>
             <!-- 保留180天的历史日志 -->
             <maxHistory>180</maxHistory>
             <!-- 所有归档日志总大小不超过2GB -->
