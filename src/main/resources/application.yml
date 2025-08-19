@@ -60,6 +60,18 @@ mioverify:
         key: admin123098
     # 是否允许重复角色名(仅发生在注册和修改)
     multi-profile-name: true
+  # 管理员配置
+  admin:
+    # 是否启用管理界面
+    enabled: true
+    # 默认管理员账号
+    default-username: admin
+    # 默认管理员密码 (首次启动时会自动加密)
+    default-password: admin123
+    # 管理界面访问路径
+    base-path: /admin
+    # 会话超时时间
+    session-timeout: 30m
   token:
     # 给角色(Profile)签名的文本
     signature: 'abcd273nsi179a'
@@ -84,6 +96,28 @@ mioverify:
     storage-loc: textures
     # 默认皮肤存储位置
     default-skin-loc: textures/skin/default.png
+    # 材质源配置
+    sources:
+      # 主要材质源类型: local, http, cloud
+      primary: local
+      # 本地存储配置
+      local:
+        enabled: true
+        base-path: textures
+      # HTTP远程材质源配置
+      http:
+        enabled: false
+        base-url: https://example.com/textures
+        timeout: 5000
+        # 是否启用缓存
+        cache-enabled: true
+        cache-duration: 1h
+      # 云存储配置 (预留)
+      cloud:
+        enabled: false
+        provider: aws-s3
+        bucket: mioverify-textures
+        region: us-east-1
     # 服务器元数据，详见Yggdrasil API
   props:
     meta:

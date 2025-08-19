@@ -10,8 +10,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 
 @RestController
@@ -23,9 +21,8 @@ public class TextureController {
     private StorageUtil storageUtil;
     @GetMapping("/skin/default")
     public void defaultSkin(HttpServletResponse resp) throws IOException {
-        File skin = dataUtil.getDefSkinLoc().toFile();
         resp.setContentType(MediaType.IMAGE_PNG_VALUE);
-        IoUtil.copy(new FileInputStream(skin), resp.getOutputStream());
+        IoUtil.copy(storageUtil.getDefaultSkin(), resp.getOutputStream());
     }
     @GetMapping("/hash/{hash}")
     public void texture(@PathVariable String hash, HttpServletResponse resp) throws IOException {

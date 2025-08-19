@@ -28,25 +28,33 @@ public class TokenExpiredListener extends KeyExpirationEventMessageListener {
     }
     @Override
     public void afterPropertiesSet() throws Exception {
-        log.info("Tokens expired Listener hooked.");
-        super.afterPropertiesSet();
+        try {
+            log.info("Tokens expired Listener hooked.");
+            super.afterPropertiesSet();
+        } catch (Exception e) {
+            log.warn("Failed to initialize Redis listener: " + e.getMessage());
+        }
     }
     @Override
     protected void doHandleMessage(Message message) {
-        String key = new String(message.getBody(), StandardCharsets.UTF_8);
-        if (key.startsWith(TokenUtil.TMARK_PREF)) {
-            String cKey = StrUtil.subSuf(key, 3); //token
-            String tKey = TokenUtil.TOKEN_PREF + cKey; //at_token
-            String userId = redisTemplate.opsForValue().get(tKey); //id
-            String tUserId = TokenUtil.USERID_PREF + userId; //tv_id
-            redisTemplate.delete(tKey);
-            HashOperations<String, Object, Object> hops = redisTemplate.opsForHash();
-            if (hops.size(tUserId) < 2) {
-                redisTemplate.delete(tUserId);
-            } else {
-                hops.delete(tUserId, cKey);
+        try {
+            String key = new String(message.getBody(), StandardCharsets.UTF_8);
+            if (key.startsWith(TokenUtil.TMARK_PREF)) {
+                String cKey = StrUtil.subSuf(key, 3); //token
+                String tKey = TokenUtil.TOKEN_PREF + cKey; //at_token
+                String userId = redisTemplate.opsForValue().get(tKey); //id
+                String tUserId = TokenUtil.USERID_PREF + userId; //tv_id
+                redisTemplate.delete(tKey);
+                HashOperations<String, Object, Object> hops = redisTemplate.opsForHash();
+                if (hops.size(tUserId) < 2) {
+                    redisTemplate.delete(tUserId);
+                } else {
+                    hops.delete(tUserId, cKey);
+                }
             }
+            super.doHandleMessage(message);
+        } catch (Exception e) {
+            log.warn("Failed to handle Redis message: " + e.getMessage());
         }
-        super.doHandleMessage(message);
     }
 }

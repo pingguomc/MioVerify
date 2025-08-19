@@ -41,24 +41,29 @@ public class DataInitializer implements InitializingBean {
     }
     @Override
     public void afterPropertiesSet() throws Exception {
-        log.info("Getting all tokens in redis...");
-        Set<String> keys = redisTemplate.keys(TokenUtil.TOKEN_PREF + "*");
-        if (keys == null) {
-            log.info("No tokens found.");
-            return ;
-        }
-        log.info("Found " + keys.size() + ". Start checking validation...");
-        int count = 0;
-        for (String key : keys)  {
-            String t = StrUtil.subSuf(key, 3);
-            Boolean hasKey = redisTemplate.hasKey(TokenUtil.TMARK_PREF + t);
-            if (hasKey == null || !hasKey) {
-                redisService.removeToken(t);
-                count++;
+        try {
+            log.info("Getting all tokens in redis...");
+            Set<String> keys = redisTemplate.keys(TokenUtil.TOKEN_PREF + "*");
+            if (keys == null) {
+                log.info("No tokens found.");
+                return ;
             }
-        }
-        if (count > 0) {
-            log.info("Cleared " + count + " token(s) expired.");
+            log.info("Found " + keys.size() + ". Start checking validation...");
+            int count = 0;
+            for (String key : keys)  {
+                String t = StrUtil.subSuf(key, 3);
+                Boolean hasKey = redisTemplate.hasKey(TokenUtil.TMARK_PREF + t);
+                if (hasKey == null || !hasKey) {
+                    redisService.removeToken(t);
+                    count++;
+                }
+            }
+            if (count > 0) {
+                log.info("Cleared " + count + " token(s) expired.");
+            }
+        } catch (Exception e) {
+            log.warn("Redis connection failed, skipping token cleanup: " + e.getMessage());
+            log.info("Application will continue without Redis token management.");
         }
     }
 }

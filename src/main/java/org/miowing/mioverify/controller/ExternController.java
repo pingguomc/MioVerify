@@ -11,6 +11,7 @@ import org.miowing.mioverify.pojo.request.UserRegisterReq;
 import org.miowing.mioverify.service.ProfileService;
 import org.miowing.mioverify.service.UserService;
 import org.miowing.mioverify.util.DataUtil;
+import org.miowing.mioverify.util.PasswordUtil;
 import org.miowing.mioverify.util.Util;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -33,6 +34,8 @@ public class ExternController {
     private ProfileService profileService;
     @Autowired
     private DataUtil dataUtil;
+    @Autowired
+    private PasswordUtil passwordUtil;
     @PostMapping("/register/user")
     public ResponseEntity<?> registerUser(@RequestBody UserRegisterReq req) {
         if (!dataUtil.isAllowRegister()) {
@@ -49,7 +52,7 @@ public class ExternController {
         }
         User user = new User()
                 .setId(Util.genUUID())
-                .setPassword(req.getPassword())
+                .setPassword(passwordUtil.encryptPassword(req.getPassword()))
                 .setUsername(req.getUsername())
                 .setPreferredLang(req.getPreferredLang());
         log.info("New user register: {}", user.getUsername());
