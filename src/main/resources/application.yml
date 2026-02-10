@@ -70,6 +70,53 @@ mioverify:
   session:
     # session过期时间
     expire: 6m
+  # 认证模式: "local" 使用传统账密, "oauth" 使用 OAuth 2
+  auth-mode: local
+  oauth:
+    # OAuth 2 授权码状态有效期
+    state-expire: 5m
+    providers:
+      microsoft:
+        # 是否启用 Microsoft OAuth
+        enabled: false
+        client-id: ''
+        client-secret: ''
+        # 授权端点
+        authorization-url: 'https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize'
+        # 令牌端点
+        token-url: 'https://login.microsoftonline.com/consumers/oauth2/v2.0/token'
+        # 用户信息端点
+        user-info-url: 'https://graph.microsoft.com/v1.0/me'
+        # 回调地址，需与 Azure 注册的一致
+        redirect-uri: 'http://localhost:8080/oauth/callback/microsoft'
+        # 请求的权限范围
+        scopes: 'openid profile email User.Read'
+      github:
+        # 是否启用 GitHub OAuth
+        enabled: false
+        client-id: ''
+        client-secret: ''
+        authorization-url: 'https://github.com/login/oauth/authorize'
+        token-url: 'https://github.com/login/oauth/access_token'
+        user-info-url: 'https://api.github.com/user'
+        redirect-uri: 'http://localhost:8080/oauth/callback/github'
+        scopes: 'read:user user:email'
+      custom:
+        # 是否启用自定义 OAuth 2 提供商
+        enabled: false
+        # 提供商名称标识
+        name: 'custom'
+        client-id: ''
+        client-secret: ''
+        authorization-url: ''
+        token-url: ''
+        user-info-url: ''
+        redirect-uri: 'http://localhost:8080/oauth/callback/custom'
+        scopes: ''
+        # 用户信息中表示用户ID的字段名
+        user-id-field: 'id'
+        # 用户信息中表示用户名的字段名
+        username-field: 'name'
   security:
     # 公钥路径
     public-key-loc: keys/public.pem

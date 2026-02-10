@@ -31,4 +31,9 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         lqw.eq(User::getUsername, username);
         return getOne(lqw);
     }
+
+    @Override
+    public @Nullable User getByUserId(String userId) {
+        return getById(userId);
+    }
 }

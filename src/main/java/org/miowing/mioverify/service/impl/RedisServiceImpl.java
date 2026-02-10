@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import java.time.Duration;
 import java.util.Set;
 
 @Service
@@ -52,5 +53,22 @@ public class RedisServiceImpl implements RedisService {
     @Override
     public void saveSession(String serverId, String token) {
         redisTemplate.opsForValue().set(SessionUtil.SESSION_PREF + serverId, token, dataUtil.getSessionExpire());
+    }
+
+    private static final String OAUTH_TEMP_PREF = "oauth_tmp_";
+
+    @Override
+    public void saveOAuthTempToken(String tempToken, String userId, Duration expire) {
+        redisTemplate.opsForValue().set(OAUTH_TEMP_PREF + tempToken, userId, expire);
+    }
+
+    @Override
+    public String consumeOAuthTempToken(String tempToken) {
+        String key = OAUTH_TEMP_PREF + tempToken;
+        String userId = redisTemplate.opsForValue().get(key);
+        if (userId != null) {
+            redisTemplate.delete(key);
+        }
+        return userId;
     }
 }

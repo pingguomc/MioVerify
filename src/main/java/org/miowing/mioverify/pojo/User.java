@@ -13,6 +13,14 @@ public class User {
     @TableId
     private String id;
     private String username;
-    private String password;
+    private @Nullable String password;
     private @Nullable String preferredLang;
+    private String authType = "LOCAL";
+
+    /**
+     * Check if this user is an OAuth user (no local password).
+     */
+    public boolean isOAuthUser() {
+        return "OAUTH".equals(authType);
+    }
 }

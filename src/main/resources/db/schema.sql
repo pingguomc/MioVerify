@@ -13,7 +13,17 @@ CREATE TABLE IF NOT EXISTS `profiles` (
 CREATE TABLE IF NOT EXISTS `users` (
   `id` varchar(64) NOT NULL,
   `username` varchar(255) NOT NULL,
-  `password` varchar(255) NOT NULL,
+  `password` varchar(255) NULL DEFAULT NULL,
   `preferred_lang` varchar(8) NULL DEFAULT NULL,
+  `auth_type` varchar(16) NOT NULL DEFAULT 'LOCAL',
+  PRIMARY KEY (`id`)
+);
+
+CREATE TABLE IF NOT EXISTS `oauth_users` (
+  `id` varchar(64) NOT NULL,
+  `provider` varchar(32) NOT NULL,
+  `provider_user_id` varchar(255) NOT NULL,
+  `provider_username` varchar(255) NULL DEFAULT NULL,
+  `bind_user` varchar(64) NOT NULL,
   PRIMARY KEY (`id`)
 );

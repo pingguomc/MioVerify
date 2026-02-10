@@ -1,6 +1,7 @@
 package org.miowing.mioverify.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.miowing.mioverify.exception.FeatureNotSupportedException;
 import org.miowing.mioverify.exception.InvalidTokenException;
 import org.miowing.mioverify.exception.NoProfileException;
 import org.miowing.mioverify.exception.ProfileMismatchException;
@@ -15,6 +16,7 @@ import org.miowing.mioverify.pojo.response.AuthResp;
 import org.miowing.mioverify.service.ProfileService;
 import org.miowing.mioverify.service.RedisService;
 import org.miowing.mioverify.service.UserService;
+import org.miowing.mioverify.util.DataUtil;
 import org.miowing.mioverify.util.TokenUtil;
 import org.miowing.mioverify.util.Util;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +37,8 @@ public class AuthController {
     @Autowired
     protected TokenUtil tokenUtil;
     @Autowired
+    private DataUtil dataUtil;
+    @Autowired
     private UserService userService;
     @Autowired
     private ProfileService profileService;
@@ -42,6 +46,9 @@ public class AuthController {
     private RedisService redisService;
     @PostMapping("/authenticate")
     public AuthResp authenticate(@RequestBody AuthReq req) {
+        if (dataUtil.isOAuthMode()) {
+            throw new FeatureNotSupportedException();
+        }
         User user = userService.getLogin(req.getUsername(), req.getPassword(), true);
         List<Profile> aProfiles = profileService.getByUserId(user.getId());
         if (aProfiles.isEmpty()) {
@@ -107,6 +114,9 @@ public class AuthController {
     }
     @PostMapping("/signout")
     public ResponseEntity<?> signout(@RequestBody AuthReq req) {
+        if (dataUtil.isOAuthMode()) {
+            throw new FeatureNotSupportedException();
+        }
         User user = userService.getLogin(req.getUsername(), req.getPassword());
         redisService.clearToken(user.getId());
         log.info("New logout: " + user.getUsername());

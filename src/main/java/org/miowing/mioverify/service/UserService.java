@@ -7,4 +7,5 @@ public interface UserService extends IService<User> {
     User getLogin(String username, String password);
     User getLogin(String username, String password, boolean exception);
     User getLoginNoPwd(String username);
+    User getByUserId(String userId);
 }
