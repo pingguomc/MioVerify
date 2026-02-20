@@ -27,7 +27,7 @@ spring:
       # 最大上传请求尺寸
       max-request-size: 2MB
   profiles:
-    # 选择数据库，"test-sqlite" 或 "test-mysql"
+    # 选择数据库，"test-sqlite" 或 "test-mysql"，这两个在下面配置
     active: test-sqlite
   data:
     # 设置Redis配置
@@ -40,6 +40,74 @@ mybatis-plus:
   global-config:
     banner: false
 mioverify:
+
+  # 跨域配置，生产环境中必须设置
+  cors:
+    # 是否启用跨域配置（若在 CDN 中配置或不跨域，可以不启用）
+    enabled: false
+    # 允许跨域的域名（* 表示允许所有，但生产环境不建议。）
+    allowed-origin: "https://your-domain.com"
+
+  # Oauth 配置项
+  oauth:
+    # 是否启用 Oauth 用户注册，注意不启用则无法注册用户，也不能使用 Oauth 登录
+    enabled: true
+    # OAuth 2 授权码状态有效期
+    expire: 5m
+    microsoft:
+      enabled: false
+      # 使用 issuer 自动发现所有端点，这是最推荐的方式
+      issuer: "https://login.microsoftonline.com/common/v2.0"
+      client-id: "自行填写客户端ID"
+      client-secret: "自行填写客户端密钥"
+      # 授权成功后的回调地址，GitHub 会将用户重定向至此 URI，并附带授权码。注意域名后的url路径后不能更改。
+      redirect-uri: "http://localhost:8080/oauth/microsoft/callback"
+
+      # OIDC 必须包含 openid，并请求基本信息和刷新令牌
+      scope: "openid profile email offline_access"
+
+    github:
+      enabled: false
+      # 以下三个内容需自行设置
+      client-id: "你的GitHub客户端ID"
+      client-secret: "你的GitHub客户端密钥"
+      # 授权成功后的回调地址，GitHub 会将用户重定向至此 URI，并附带授权码。注意域名后的url路径后不能更改。
+      redirect-uri: "http://localhost:8080/oauth/github/callback"
+      # GitHub 的授权端点 URL
+      authorization-url: "https://github.com/login/oauth/authorize"
+      # GitHub 的访问令牌端点 URL
+      token-url: "https://github.com/login/oauth/access_token"
+      # GitHub 的用户信息 API 端点 URL
+      user-info-url: "https://api.github.com/user"
+      # 向 GitHub 请求的权限范围
+      scope: "user:email"
+
+    mcjpg:
+      enabled: false
+      # 使用 issuer URL，自动发现所有端点
+      issuer: "https://auth.your-domain.com/realms/your-realm" # OIDC 地址
+      client-id: "{OIDC_CLIENT_ID}"
+      client-secret: "{OIDC_CLIENT_SECRET}"
+      redirect-uri: "http://localhost:8080/oauth/mcjpg/callback" # 回调地址
+      # 2. 请求 openid scope，并附带 profile 和 email
+      scope: "openid profile email"
+
+    custom:
+      enabled: false
+      # 以下所有内容需自行设置
+      client-id: "客户端ID"
+      client-secret: "客户端密钥"
+      # 授权成功后的回调地址，会将用户重定向至此 URI，并附带授权码。注意域名后的url路径后不能更改。
+      redirect-uri: "http://localhost:8080/oauth/custom/callback"
+      # 授权端点 URL
+      authorization-url: "https://your-auth-server.com/login/oauth/authorize"
+      # 访问令牌端点 URL
+      token-url: "https://your-auth-server.com/login/oauth/access_token"
+      # 用户信息 API 端点 URL
+      user-info-url: "https://your-auth-server.com/user"
+      # 请求的权限范围
+      scope: "user:email"
+
   # 扩展API配置项
   extern:
     register:
@@ -84,7 +152,7 @@ mioverify:
     storage-loc: textures
     # 默认皮肤存储位置
     default-skin-loc: textures/skin/default.png
-    # 服务器元数据，详见Yggdrasil API
+  # 服务器元数据，详见Yggdrasil API
   props:
     meta:
       # 将会显示在启动器
@@ -92,7 +160,7 @@ mioverify:
       # 实现的名称
       implementation-name: mioverify
       # 实现的版本
-      implementation-version: '0.0.1'
+      implementation-version: '${project.version}'
       links:
         # 主页地址
         home-page: https://www.baidu.com

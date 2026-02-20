@@ -55,8 +55,25 @@ public class DataUtil implements InitializingBean {
     private boolean profileStrict;
     @Value("${mioverify.extern.multi-profile-name}")
     private boolean multiProfileName;
+
+    //以下为跨域设置
+    @Value("${mioverify.cors.enabled}")
+    private boolean corsEnabled;
+    @Value("${mioverify.cors.allowed-origin}")
+    private String corsAllowedOrigin;
+
+    //以下内容为 Oauth 配置
+    /**
+     * 是否启用 Oauth 模式
+     */
+    @Value("${mioverify.oauth.enabled}")
+    private boolean isOAuthMode;
+
+
     @Override
     public void afterPropertiesSet() throws Exception {
         log.info("Reading data from application file...");
+        //
     }
+
 }

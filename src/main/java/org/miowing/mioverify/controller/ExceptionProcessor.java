@@ -7,8 +7,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+/**
+ * <h1>全局异常处理</h1>
+ * 异常分类捕获 + 标准化响应
+ */
 @RestControllerAdvice
 public class ExceptionProcessor {
+
     @ExceptionHandler(LoginFailedException.class)
     public ResponseEntity<?> handleLoginFailed() {
         return new ResponseEntity<>(
@@ -17,6 +22,7 @@ public class ExceptionProcessor {
                 HttpStatus.FORBIDDEN
         );
     }
+
     @ExceptionHandler(NoProfileException.class)
     public ResponseEntity<?> handleNoProfile() {
         return new ResponseEntity<>(
@@ -25,6 +31,7 @@ public class ExceptionProcessor {
                 HttpStatus.FORBIDDEN
         );
     }
+
     @ExceptionHandler(InvalidTokenException.class)
     public ResponseEntity<?> handleInvalidToken() {
         return new ResponseEntity<>(
@@ -33,18 +40,25 @@ public class ExceptionProcessor {
                 HttpStatus.FORBIDDEN
         );
     }
+
     @ExceptionHandler({ProfileNotFoundException.class, UserMismatchException.class, InvalidSessionException.class})
     public ResponseEntity<?> handleNoContent() {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        //
     }
+
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<?> handleUnauthorized() {
         return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        //
     }
+
     @ExceptionHandler(TextureNotFoundException.class)
     public ResponseEntity<?> handleNotFound() {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        //
     }
+
     @ExceptionHandler(
             {
                     AttackDefenseException.class,
@@ -58,5 +72,7 @@ public class ExceptionProcessor {
     )
     public ResponseEntity<?> handleForbidden() {
         return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        //
     }
+
 }

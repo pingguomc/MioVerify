@@ -13,6 +13,10 @@ public class User {
     @TableId
     private String id;
     private String username;
-    private String password;
+    private @Nullable String password;
     private @Nullable String preferredLang;
+    private @Nullable String microsoftId;
+    private @Nullable String githubId;
+    private @Nullable String mcjpgId;
+    private @Nullable String customId;
 }

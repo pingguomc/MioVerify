@@ -33,6 +33,7 @@ public class ExternController {
     private ProfileService profileService;
     @Autowired
     private DataUtil dataUtil;
+    @Deprecated(since = "1.4.0")
     @PostMapping("/register/user")
     public ResponseEntity<?> registerUser(@RequestBody UserRegisterReq req) {
         if (!dataUtil.isAllowRegister()) {
