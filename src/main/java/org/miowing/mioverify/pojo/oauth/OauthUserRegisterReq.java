@@ -1,4 +1,4 @@
-package org.miowing.mioverify.pojo.request;
+package org.miowing.mioverify.pojo.oauth;
 
 import lombok.Data;
 import org.springframework.lang.Nullable;

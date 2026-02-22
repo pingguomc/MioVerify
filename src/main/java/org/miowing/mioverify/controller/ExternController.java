@@ -57,6 +57,7 @@ public class ExternController {
         userService.save(user);
         return new ResponseEntity<>(HttpStatus.OK);
     }
+
     @PostMapping("/register/profile")
     public ResponseEntity<?> registerProfile(@RequestBody ProfileRegisterReq req) {
         if (!dataUtil.isAllowRegister()) {

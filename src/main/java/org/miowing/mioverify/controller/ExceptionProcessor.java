@@ -75,4 +75,10 @@ public class ExceptionProcessor {
         //
     }
 
+    @ExceptionHandler(ServerConfigurationException.class)
+    public ResponseEntity<?> handleServerError() {
+        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        //
+    }
+
 }

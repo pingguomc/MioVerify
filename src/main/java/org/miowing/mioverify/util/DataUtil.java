@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
 import java.nio.file.Path;
 import java.time.Duration;
 
@@ -62,13 +63,19 @@ public class DataUtil implements InitializingBean {
     @Value("${mioverify.cors.allowed-origin}")
     private String corsAllowedOrigin;
 
-    //以下内容为 Oauth 配置
-    /**
-     * 是否启用 Oauth 模式
-     */
-    @Value("${mioverify.oauth.enabled}")
-    private boolean isOAuthMode;
-
+    //以下为 Oauth 设置
+    @Value("${spring.security.oauth2.enabled}")
+    private boolean oAuthEnabled;
+    @Value("${spring.security.oauth2.client.registration.github.enabled}")
+    private boolean oAuthGitHubEnabled;
+    @Value("${spring.security.oauth2.client.registration.microsoft.enabled}")
+    private boolean oAuthMicrosoftEnabled;
+    @Value("${spring.security.oauth2.client.registration.mcjpg.enabled}")
+    private boolean oAuthMcjpgEnabled;
+    @Value("${spring.security.oauth2.client.registration.custom.enabled}")
+    private boolean oAuthCustomEnabled;
+    @Value("${spring.security.oauth2.expire:5m}")
+    private Duration oauthExpire;
 
     @Override
     public void afterPropertiesSet() throws Exception {

@@ -9,11 +9,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestTemplate;
 
 @Configuration
 public class HttpConfig {
     @Autowired
     private DataUtil dataUtil;
+
     @Bean
     public TomcatServletWebServerFactory servletWebServerFactory(Connector connector) {
         if (!dataUtil.isSslEnabled()) {
@@ -33,6 +35,7 @@ public class HttpConfig {
         serverFactory.addAdditionalTomcatConnectors(connector);
         return serverFactory;
     }
+
     @Bean
     public Connector createHttpConnector() {
         Connector connector = new Connector("org.apache.coyote.http11.Http11NioProtocol");
@@ -42,4 +45,11 @@ public class HttpConfig {
         connector.setRedirectPort(dataUtil.getPort());
         return connector;
     }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+        //
+    }
+
 }
