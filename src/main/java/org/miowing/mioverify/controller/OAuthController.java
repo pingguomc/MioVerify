@@ -4,7 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.miowing.mioverify.dao.UserDao;
-import org.miowing.mioverify.exception.*;
+import org.miowing.mioverify.exception.FeatureNotSupportedException;
+import org.miowing.mioverify.exception.InvalidTokenException;
+import org.miowing.mioverify.exception.NoProfileException;
+import org.miowing.mioverify.exception.UnauthorizedException;
 import org.miowing.mioverify.pojo.AToken;
 import org.miowing.mioverify.pojo.Profile;
 import org.miowing.mioverify.pojo.ProfileShow;
@@ -187,12 +190,4 @@ public class OAuthController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    /**
-     * OAuth2 登录失败后的跳转端点
-     * 由 Spring Security 在 OAuth2 流程失败时自动重定向至此
-     */
-    @GetMapping("/error")
-    public void oauthError() {
-        throw new LoginFailedException();
-    }
 }

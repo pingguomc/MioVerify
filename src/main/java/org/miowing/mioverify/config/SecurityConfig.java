@@ -1,6 +1,5 @@
 package org.miowing.mioverify.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.miowing.mioverify.pojo.oauth.OAuthCallbackResp;
 import org.miowing.mioverify.service.OAuthService;
@@ -20,6 +19,7 @@ import org.springframework.security.oauth2.client.registration.InMemoryClientReg
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Map;
@@ -102,7 +102,14 @@ public class SecurityConfig {
                     .clientRegistrationRepository(filteredRepository())
                     .successHandler(oAuth2SuccessHandler())
                     // 登录失败
-                    .failureUrl("/oauth/error")
+                    .failureHandler((request, response, exception) -> {
+                        String frontendErrorUri = dataUtil.getOauthFrontendRedirectUri(); // 可配置
+                        String redirectUrl = UriComponentsBuilder.fromHttpUrl(frontendErrorUri)
+                                .queryParam("error", exception.getMessage())
+                                .build().toUriString();
+                        response.setStatus(HttpStatus.FOUND.value());
+                        response.setHeader("Location", redirectUrl);
+                    })
             );
         }
 
@@ -146,10 +153,19 @@ public class SecurityConfig {
                     provider, providerUserId, providerUsername
             );
 
-            response.setContentType("application/json;charset=UTF-8");
-            response.setStatus(HttpStatus.OK.value());
-            // 直接复用 OAuthCallbackResp，Jackson 序列化
-            response.getWriter().write(new ObjectMapper().writeValueAsString(resp));
+            String frontendRedirectUri = dataUtil.getOauthFrontendRedirectUri(); // 假设有这个方法
+
+            // 构建重定向 URL，添加必要参数
+            String redirectUrl = UriComponentsBuilder.fromHttpUrl(frontendRedirectUri)
+                    .queryParam("tempToken", resp.getTempToken())
+                    .queryParam("provider", provider)
+                    .queryParam("needProfile", resp.isNeedProfile())
+                    .queryParam("userId", resp.getUserId() != null ? resp.getUserId() : "")
+                    .build().toUriString();
+
+            // 发送重定向
+            response.setStatus(HttpStatus.FOUND.value());
+            response.setHeader("Location", redirectUrl);
         };
     }
 

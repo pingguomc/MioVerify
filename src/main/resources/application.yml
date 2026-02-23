@@ -33,34 +33,34 @@ spring:
             enabled: true
             client-id: "your-github-client-id"
             client-secret: "your-github-client-secret"
-            redirect-uri: "{baseUrl}/oauth/callback/github"
+            redirect-uri: "{baseUrl}/oauth/callback/github" # 不可修改！
             scope: read:user, user:email
 
           microsoft:
             enabled: true
             client-id: "client-id"
             client-secret: "client-secret"
-            redirect-uri: "{baseUrl}/oauth/callback/microsoft"
+            redirect-uri: "{baseUrl}/oauth/callback/microsoft" # 不可修改！
             scope: openid, profile, email
 
           mcjpg:
             enabled: true
             client-id: "client-id"
             client-secret: "client-secret"
-            redirect-uri: "{baseUrl}/oauth/callback/mcjpg"
+            redirect-uri: "{baseUrl}/oauth/callback/mcjpg" # 不可修改！
             scope: openid, profile, email
 
           custom:
             enabled: true
             client-id: "client-id"
             client-secret: "client-secret"
-            redirect-uri: "{baseUrl}/oauth/callback/custom"
+            redirect-uri: "{baseUrl}/oauth/callback/custom" # 不可修改！
             scope: read
             client-name: "custom"
 
         provider:
           microsoft:
-            issuer-uri: "https://login.microsoftonline.com/your-tenant-id/v2.0"
+            issuer-uri: "https://login.microsoftonline.com/common/v2.0"
             user-name-attribute: name
           mcjpg:
             issuer-uri: "https://sso.mcjpg.org"
@@ -97,6 +97,8 @@ mybatis-plus:
 
 
 mioverify:
+  # OAuth 前端回调地址 (全部uri均可修改)
+  oauth-frontend-redirect-uri: "https://your-frontend.com/oauth/callback"
 
   # 跨域配置，生产环境中必须设置
   cors:

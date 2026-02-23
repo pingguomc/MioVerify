@@ -1,0 +1,4 @@
+spring:
+  security:
+    oauth2:
+      enabled: false   # 禁用 OAuth2

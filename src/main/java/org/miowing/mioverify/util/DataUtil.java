@@ -76,6 +76,8 @@ public class DataUtil implements InitializingBean {
     private boolean oAuthCustomEnabled;
     @Value("${spring.security.oauth2.expire:5m}")
     private Duration oauthExpire;
+    @Value("${mioverify.oauth-frontend-redirect-uri}")
+    private String oauthFrontendRedirectUri;
 
     @Override
     public void afterPropertiesSet() throws Exception {

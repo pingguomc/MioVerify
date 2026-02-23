@@ -4,8 +4,8 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 
 /**
- * OAuth 回调响应
- * 用于 /oauth/callback/{provider} 接口返回临时令牌和用户信息
+ * 并非 OAuth 回调响应 (临时作为数据中转类)
+ * 用于返回临时令牌和用户信息
  */
 @Data
 @Accessors(chain = true)
