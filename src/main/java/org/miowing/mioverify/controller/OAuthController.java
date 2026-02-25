@@ -1,7 +1,7 @@
 package org.miowing.mioverify.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import jakarta.servlet.http.HttpServletRequest;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.miowing.mioverify.dao.UserDao;
 import org.miowing.mioverify.exception.FeatureNotSupportedException;
@@ -13,7 +13,6 @@ import org.miowing.mioverify.pojo.Profile;
 import org.miowing.mioverify.pojo.ProfileShow;
 import org.miowing.mioverify.pojo.User;
 import org.miowing.mioverify.pojo.oauth.OAuthAuthReq;
-import org.miowing.mioverify.pojo.oauth.OAuthBindReq;
 import org.miowing.mioverify.pojo.oauth.OAuthProviderListResp;
 import org.miowing.mioverify.pojo.oauth.OAuthStatusResp;
 import org.miowing.mioverify.pojo.response.AuthResp;
@@ -31,9 +30,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
- * OAuth 2.0 / OIDC 相关控制器
+ * OAuth 2.0 控制器
  * 所有端点均以 /oauth 开头，处理第三方登录、绑定、解绑等操作
  */
 @Slf4j
@@ -46,22 +46,17 @@ public class OAuthController {
 
     @Autowired
     private UserService userService;
-
     @Autowired
     private ProfileService profileService;
-
     @Autowired
     private RedisService redisService;
-
     @Autowired
     private OAuthService oAuthService;
 
     @Autowired
     private DataUtil dataUtil;
-
     @Autowired
     private TokenUtil tokenUtil;
-
     @Autowired
     private Util util;
 
@@ -76,7 +71,7 @@ public class OAuthController {
         }
         List<String> providers = new ArrayList<>();
         if ( dataUtil.isOAuthMicrosoftEnabled() ) providers.add("microsoft");
-        if ( dataUtil.isOAuthGitHubEnabled() ) providers.add("gitHub");
+        if ( dataUtil.isOAuthGitHubEnabled() ) providers.add("github");
         if ( dataUtil.isOAuthMcjpgEnabled() ) providers.add("mcjpg");
         if ( dataUtil.isOAuthCustomEnabled() ) providers.add("custom");
         return new OAuthStatusResp().setEnabled(true).setProviders(providers);
@@ -129,36 +124,83 @@ public class OAuthController {
      * 获取所有支持的 OAuth 提供商及当前用户的绑定状态
      */
     @GetMapping("/providers")
-    public OAuthProviderListResp getProviders(HttpServletRequest request) {
+    public OAuthProviderListResp getProviders(@RequestHeader("Authorization") String authorization) {
         if ( ! dataUtil.isOAuthEnabled() ) {
             throw new FeatureNotSupportedException();
         }
 
-        //TODO
+        User user = getUserFromAuthorization(authorization);
 
-        return null;
+        List<OAuthProviderListResp.ProviderInfo> providerInfos = new ArrayList<>();
+
+        if ( dataUtil.isOAuthMicrosoftEnabled() ) {
+            providerInfos.add(new OAuthProviderListResp.ProviderInfo()
+                    .setProvider("microsoft")
+                    .setBound(user.getMicrosoftId() != null));
+        }
+        if ( dataUtil.isOAuthGitHubEnabled() ) {
+            providerInfos.add(new OAuthProviderListResp.ProviderInfo()
+                    .setProvider("github")
+                    .setBound(user.getGithubId() != null));
+        }
+        if ( dataUtil.isOAuthMcjpgEnabled() ) {
+            providerInfos.add(new OAuthProviderListResp.ProviderInfo()
+                    .setProvider("mcjpg")
+                    .setBound(user.getMcjpgId() != null));
+        }
+        if ( dataUtil.isOAuthCustomEnabled() ) {
+            providerInfos.add(new OAuthProviderListResp.ProviderInfo()
+                    .setProvider("custom")
+                    .setBound(user.getCustomId() != null));
+        }
+
+        return new OAuthProviderListResp().setProviders(providerInfos);
     }
 
     /**
      * 绑定第三方账号到当前用户（需要登录）
+     * <br>
+     * 1. 校验用户 Token
+     * 2. 生成 bindNonce 存入 Redis
+     * 3. 返回带有 bind_nonce 参数的 OAuth 授权 URL
+     * 4. 前端拿到 URL 后直接跳转，剩下的全交给 Spring Security
      */
     @PostMapping("/bind/{provider}")
     public ResponseEntity<?> bindProvider(
             @PathVariable String provider,
-            @RequestBody OAuthBindReq req,
-            HttpServletRequest request) {
+            @RequestHeader("Authorization") String authorization) {
         if ( ! dataUtil.isOAuthEnabled() ) {
             throw new FeatureNotSupportedException();
         }
 
-        //TODO
+        boolean providerEnabled = switch ( provider ) {
+            case "github" -> dataUtil.isOAuthGitHubEnabled();
+            case "microsoft" -> dataUtil.isOAuthMicrosoftEnabled();
+            case "mcjpg" -> dataUtil.isOAuthMcjpgEnabled();
+            case "custom" -> dataUtil.isOAuthCustomEnabled();
+            default -> false;
+        };
+        if ( ! providerEnabled ) {
+            throw new FeatureNotSupportedException();
+        }
 
+        User user = getUserFromAuthorization(authorization);
 
-        return ResponseEntity.ok().build();
+        String nonce = Util.genUUID();
+        redisService.saveOAuthBindNonce(nonce, user.getId());
+
+        String serverUrl = (dataUtil.isUseHttps() ? "https://" : "http://")
+                + dataUtil.getServerDomain() + ":" + dataUtil.getPort();
+        String authUrl = serverUrl + "/oauth/authorize/" + provider
+                + "?bind_nonce=" + nonce;
+
+        log.info("User {} initiate bind for provider: {}", user.getId(), provider);
+
+        return ResponseEntity.ok(Map.of("authorizationUrl", authUrl));
     }
 
     /**
-     * 解绑第三方账号
+     * 解绑第三方账号（需要登录）
      */
     @DeleteMapping("/bind/{provider}")
     public ResponseEntity<?> unbindProvider(
@@ -168,6 +210,41 @@ public class OAuthController {
             throw new FeatureNotSupportedException();
         }
 
+        User user = getUserFromAuthorization(authorization);
+
+        oAuthService.unbind(user.getId(), provider); // 取消成功和未绑定均返回 204
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * 登出方法
+     * //TODO 临时设置，后续更改为更合适的登出方法
+     *
+     * @see AuthController
+     */
+    @Deprecated
+    @PostMapping("/signout")
+    public ResponseEntity<?> signOut(@RequestHeader("Authorization") String authorization) {
+        if ( ! dataUtil.isOAuthEnabled() ) {
+            throw new FeatureNotSupportedException();
+        }
+
+        User user = getUserFromAuthorization(authorization);
+        redisService.clearToken(user.getId());
+        log.info("Oauth logout: {}", user.getUsername());
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+
+    /**
+     * 从 Authorization 头提供的 accessToken 解析用户
+     *
+     * @param authorization Http 请求 Authorization头
+     *
+     * @return {@link User} 实例
+     */
+    private @NonNull User getUserFromAuthorization(String authorization) {
         if ( authorization == null || ! authorization.startsWith("Bearer ") ) {
             throw new UnauthorizedException(); // 401
         }
@@ -185,9 +262,7 @@ public class OAuthController {
             throw new UnauthorizedException(); // 401
         }
 
-        oAuthService.unbind(user.getId(), provider); // 取消成功和未绑定均返回 204
-
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        return user;
     }
 
 }

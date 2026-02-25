@@ -25,4 +25,13 @@ public interface OAuthService {
      */
     void unbind(String userId, String provider);
 
+    /**
+     * 将 OAuth provider 账号绑定到已有本地用户。
+     *
+     * @param userId         要绑定到的本地用户 ID（从 nonce 中取出）
+     * @param provider       provider 名称
+     * @param providerUserId provider 返回的用户唯一 ID
+     */
+    void handleOAuthBind(String userId, String provider, String providerUserId);
+
 }

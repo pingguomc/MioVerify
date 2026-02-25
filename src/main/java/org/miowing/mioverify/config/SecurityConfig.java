@@ -3,6 +3,7 @@ package org.miowing.mioverify.config;
 import lombok.extern.slf4j.Slf4j;
 import org.miowing.mioverify.pojo.oauth.OAuthCallbackResp;
 import org.miowing.mioverify.service.OAuthService;
+import org.miowing.mioverify.service.RedisService;
 import org.miowing.mioverify.util.DataUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -16,9 +17,13 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
@@ -31,7 +36,7 @@ import java.util.Objects;
  * <p>本类承担以下职责：</p>
  * <ul>
  *   <li>禁用 CSRF（项目为无状态 REST API，使用自定义 Token 鉴权）</li>
- *   <li>放行所有接口（鉴权逻辑由各 Controller 内部通过 TokenUtil 自行处理）</li>
+ *   <li>放行所有接口（鉴权逻辑由各 Controller 内部通过 TokenUtil 处理）</li>
  *   <li>根据配置文件中的开关，动态注册启用的 OAuth2 Provider</li>
  *   <li>接管 {@code /oauth/authorize/{provider}} 和 {@code /oauth/callback/{provider}} 两个端点，
  *       由 Spring Security 自动完成授权跳转与 code 换 token 流程</li>
@@ -53,6 +58,8 @@ public class SecurityConfig {
     private ClientRegistrationRepository clientRegistrationRepository;
     @Autowired
     private OAuthService oAuthService;
+    @Autowired
+    private RedisService redisService;
     @Autowired
     private DataUtil dataUtil;
 
@@ -93,6 +100,7 @@ public class SecurityConfig {
                     // 接管 /oauth/authorize/{provider}
                     .authorizationEndpoint(auth -> auth
                             .baseUri("/oauth/authorize")
+                            .authorizationRequestResolver(buildAuthorizationRequestResolver())
                     )
                     // 接管 /oauth/callback/{provider}
                     .redirectionEndpoint(redirect -> redirect
@@ -144,30 +152,93 @@ public class SecurityConfig {
             // 不同 Provider 的用户名字段名不同，按优先级取
             String providerUserId = oAuth2User.getName();
             String providerUsername = resolveUsername(oAuth2User);
+            String frontendRedirectUri = dataUtil.getOauthFrontendRedirectUri();
 
-            log.info("OAuth2 authorization success: provider={}, userId={}, username={}",
-                    provider, providerUserId, providerUsername);
+            // 从 state 参数里尝试提取 bindNonce
+            String state = request.getParameter("state");
+            String bindNonce = extractBindNonce(state);
 
-            // 交给 OAuthService 处理用户查找/创建，返回临时 Token
-            OAuthCallbackResp resp = oAuthService.handleOAuthLogin(
-                    provider, providerUserId, providerUsername
-            );
+            if ( bindNonce != null ) {
+                // 绑定流程
+                String userId = redisService.consumeOAuthBindNonce(bindNonce);
 
-            String frontendRedirectUri = dataUtil.getOauthFrontendRedirectUri(); // 假设有这个方法
+                if ( userId == null ) {
+                    // nonce 已过期或不存在
+                    redirect(response, frontendRedirectUri, "error", "bind_nonce_expired");
+                    return;
+                }
 
-            // 构建重定向 URL，添加必要参数
-            String redirectUrl = UriComponentsBuilder.fromHttpUrl(frontendRedirectUri)
-                    .queryParam("tempToken", resp.getTempToken())
-                    .queryParam("provider", provider)
-                    .queryParam("needProfile", resp.isNeedProfile())
-                    .queryParam("userId", resp.getUserId() != null ? resp.getUserId() : "")
-                    .build().toUriString();
+                try {
+                    oAuthService.handleOAuthBind(userId, provider, providerUserId);
+                } catch (Exception e) {
+                    log.warn("OAuth bind failed: {}", e.getClass().getSimpleName());
+                    redirect(response, frontendRedirectUri, "error", "bind_failed");
+                    return;
+                }
 
-            // 发送重定向
-            response.setStatus(HttpStatus.FOUND.value());
-            response.setHeader("Location", redirectUrl);
+                log.info("OAuth2 bind success: provider={}, userId={}", provider, userId);
+                redirect(response, frontendRedirectUri, "bindSuccess", "true");
+
+            } else {
+                log.info("OAuth2 authorization success: provider={}, userId={}, username={}",
+                        provider, providerUserId, providerUsername);
+
+                // 交给 OAuthService 处理用户查找/创建，返回临时 Token
+                OAuthCallbackResp resp = oAuthService.handleOAuthLogin(
+                        provider, providerUserId, providerUsername
+                );
+
+                // 构建重定向 URL，添加必要参数
+                String redirectUrl = UriComponentsBuilder.fromHttpUrl(frontendRedirectUri)
+                        .queryParam("tempToken", resp.getTempToken())
+                        .queryParam("provider", provider)
+                        .queryParam("needProfile", resp.isNeedProfile())
+                        .queryParam("userId", resp.getUserId() != null ? resp.getUserId() : "")
+                        .build().toUriString();
+
+                // 发送重定向
+                response.setStatus(HttpStatus.FOUND.value());
+                response.setHeader("Location", redirectUrl);
+            }
         };
     }
+
+
+    /**
+     * 自定义授权请求解析器。<br>
+     * 作用：当请求 /oauth/authorize/{provider}?bind_nonce=xxx 时，<br>
+     * 把 bind_nonce 附加到 OAuth state 里，格式为：<br>
+     * "原始state,bindnonce:xxxxx"<br>
+     * successHandler 收到回调后，从 state 里读出 nonce，识别是绑定模式。
+     */
+    private OAuth2AuthorizationRequestResolver buildAuthorizationRequestResolver() {
+        DefaultOAuth2AuthorizationRequestResolver resolver =
+                new DefaultOAuth2AuthorizationRequestResolver(
+                        clientRegistrationRepository,
+                        "/oauth/authorize"
+                );
+
+        resolver.setAuthorizationRequestCustomizer(customizer -> {
+            // 从当前请求里取 bind_nonce 参数
+            RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
+            if ( attributes == null ) return;
+
+            jakarta.servlet.http.HttpServletRequest request =
+                    (jakarta.servlet.http.HttpServletRequest)
+                            attributes.resolveReference(RequestAttributes.REFERENCE_REQUEST);
+            if ( request == null ) return;
+
+            String bindNonce = request.getParameter("bind_nonce");
+            if ( bindNonce != null && ! bindNonce.isBlank() ) {
+                // 附加到 state 末尾，以逗号分隔
+                String originalState = customizer.build().getState();
+                customizer.state(originalState + ",bindnonce:" + bindNonce);
+            }
+        });
+
+        return resolver;
+    }
+
 
     /**
      * 根据不同 Provider 解析用户名。
@@ -219,6 +290,29 @@ public class SecurityConfig {
         }
 
         return new InMemoryClientRegistrationRepository(activeList);
+    }
+
+    /** 从 state 中提取 bindNonce，格式：<原始state>,bindnonce:<uuid> */
+    private String extractBindNonce(String state) {
+        if ( state == null ) return null;
+        for ( String part : state.split(",") ) {
+            if ( part.startsWith("bindnonce:") ) {
+                return part.substring("bindnonce:".length());
+            }
+        }
+        return null;
+    }
+
+    /** 工具方法：重定向并带一个查询参数 */
+    private void redirect(
+            jakarta.servlet.http.HttpServletResponse response,
+            String baseUrl, String key, String value) throws java.io.IOException {
+
+        String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
+                .queryParam(key, value)
+                .build().toUriString();
+        response.setStatus(HttpStatus.FOUND.value());
+        response.setHeader("Location", url);
     }
 
 }

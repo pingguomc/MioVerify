@@ -6,8 +6,6 @@
 
 基本上与 **Yggdrasil-服务端技术规范** 保持一致。
 
-TODO: 异常情况和错误类型表格
-
 ## OAuth 第三方登录/注册
 
 ### OAuth 状态查询
@@ -44,7 +42,7 @@ TODO: 异常情况和错误类型表格
 
 此端点由 Provider 在用户授权后自动调用，**无需前端直接访问**。
 
-后端除了完毕后会将浏览器重定向至配置的 `OAuth 前端回调地址`，并在 URL **查询** 参数中附加以下信息：
+后端处理完毕后会将浏览器重定向至配置的 `OAuth 前端回调地址`，并在 URL **查询** 参数中附加以下信息：
 
 |      参数名      |   类型    | 描述                                                    |
 |:-------------:|:-------:|:------------------------------------------------------|
@@ -94,8 +92,7 @@ TODO: 异常情况和错误类型表格
 
 `POST /oauth/bind/{provider}`
 
-请求需要带上 HTTP 头部 `Authorization: Bearer {accessToken}` 进行认证。若未包含 Authorization 头或 accessToken 无效，则返回
-`401 Unauthorized`。
+TODO
 
 将被 `302` 重定向至指定的 Provider （ Authorization Server ）的授权页
 
@@ -106,9 +103,39 @@ TODO: 异常情况和错误类型表格
 请求需要带上 HTTP 头部 `Authorization: Bearer {accessToken}` 进行认证。若未包含 Authorization 头或 accessToken 无效，则返回
 `401 Unauthorized`。
 
+若用户仅剩一个第三方认证，则解绑失败，返回 `403	Forbidden`
+
 若操作成功或从未绑定这个服务商，服务端应返回 HTTP 状态 `204 No Content`
 
-### 获取所有支持的 OAuth 提供商及当前用户的绑定状态（待定）
+### 获取所有支持的 OAuth 提供商及当前用户的绑定状态
+
+`GET /oauth/providers`
+
+请求需要带上 HTTP 头部 `Authorization: Bearer {accessToken}` 进行认证。若未包含 Authorization 头或 accessToken 无效，则返回
+`401 Unauthorized`。
+
+响应格式：
+
+```json5
+{
+  "providers": [
+    {
+      "provider": "唯一标识符",  // 例如 github
+      "bond": true // true or false 表示是否绑定
+    },
+    // 可以包含更多
+  ]
+}
+```
+
+### 登出
+
+`POST /oauth/signout`
+
+请求需要带上 HTTP 头部 `Authorization: Bearer {accessToken}` 进行认证。若未包含 Authorization 头或 accessToken 无效，则返回
+`401 Unauthorized`。
+
+若操作成功，服务端应返回 HTTP 状态 `204 No Content`。
 
 ## 密码管理
 

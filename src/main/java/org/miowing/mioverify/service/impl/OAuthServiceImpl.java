@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.miowing.mioverify.dao.UserDao;
+import org.miowing.mioverify.exception.DuplicateUserNameException;
 import org.miowing.mioverify.exception.FeatureNotSupportedException;
 import org.miowing.mioverify.pojo.User;
 import org.miowing.mioverify.pojo.oauth.OAuthCallbackResp;
@@ -91,7 +92,6 @@ public class OAuthServiceImpl implements OAuthService {
                 .setNeedProfile(false); //暂时设置为 false
     }
 
-
     @Override
     public void unbind(@NonNull String userId, @NonNull String provider) {
         BiConsumer<User, String> setter = PROVIDER_SETTER.get(provider);
@@ -108,9 +108,36 @@ public class OAuthServiceImpl implements OAuthService {
         log.info("User: {} ,Unbind oauth provider: {}", userId, provider);
     }
 
+    @Override
+    public void handleOAuthBind(String userId, String provider, String providerUserId) {
+
+        BiConsumer<User, String> setter = PROVIDER_SETTER.get(provider);
+        String fieldName = PROVIDER_FIELD.get(provider);
+
+        if ( setter == null || fieldName == null ) {
+            throw new FeatureNotSupportedException();
+        }
+
+        // 检查该第三方账号是否已被其他本地账号绑定
+        User existing = userDao.selectOne(
+                new QueryWrapper<User>().eq(fieldName, providerUserId)
+        );
+        if ( existing != null && ! existing.getId().equals(userId) ) {
+            throw new DuplicateUserNameException(); // 已被其他账号绑定
+        }
+
+        User user = userDao.selectById(userId);
+        if ( user == null ) {
+            throw new FeatureNotSupportedException();
+        }
+
+        setter.accept(user, providerUserId);
+        userDao.updateById(user);
+
+        log.info("Oauth User {} bind provider {} -> {}", userId, provider, providerUserId);
+    }
 
     //-----------
-
 
     /**
      * 创建新用户

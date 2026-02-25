@@ -10,7 +10,7 @@
     </parent>
     <groupId>org.miowing</groupId>
     <artifactId>MioVerify</artifactId>
-    <version>commit-bab54412d55042c93f0822fa831c5aedd4e60a47</version>
+    <version>commit-9b9a04258456b6223be2d7fc998bd58c03c08875</version>
     <name>MioVerify</name>
     <description>A Minecraft verification server implementing Yggdrasil API</description>
     <properties>

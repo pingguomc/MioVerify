@@ -23,9 +23,8 @@ public class RedisServiceImpl implements RedisService {
     @Autowired
     private DataUtil dataUtil;
 
-
-    private static final String OAUTH_STATE_PREF = "oauth:state:";
     private static final String OAUTH_TEMP_TOKEN_PREF = "oauth:temp:";
+    private static final String OAUTH_BIND_NONCE_PREF = "oauth:bind:";
 
     @Override
     public void saveToken(String token, String userId) {
@@ -69,6 +68,7 @@ public class RedisServiceImpl implements RedisService {
         redisTemplate.opsForValue().set(SessionUtil.SESSION_PREF + serverId, token, dataUtil.getSessionExpire());
     }
 
+
     @Override
     public void saveOAuthTempToken(String tempToken, String userId) {
         String key = OAUTH_TEMP_TOKEN_PREF + tempToken;
@@ -79,6 +79,17 @@ public class RedisServiceImpl implements RedisService {
     public String consumeOAuthTempToken(String tempToken) {
         String key = OAUTH_TEMP_TOKEN_PREF + tempToken;
         return redisTemplate.opsForValue().getAndDelete(key);
+    }
+
+    @Override
+    public void saveOAuthBindNonce(String nonce, String userId) {
+        String key = OAUTH_BIND_NONCE_PREF + nonce;
+        redisTemplate.opsForValue().set(key, userId, dataUtil.getOauthExpire().getSeconds(), TimeUnit.SECONDS);
+    }
+
+    @Override
+    public String consumeOAuthBindNonce(String nonce) {
+        return redisTemplate.opsForValue().getAndDelete(OAUTH_BIND_NONCE_PREF + nonce);
     }
 
 }
