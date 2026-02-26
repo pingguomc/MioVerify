@@ -17,6 +17,8 @@ server:
     key-alias: boot
   servlet:
     application-display-name: MioVerify Alpha
+  # 自动适配 Nginx 和 Cloudflare
+  forward-headers-strategy: framework
 
 
 spring:

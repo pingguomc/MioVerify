@@ -9,6 +9,7 @@ import org.miowing.mioverify.pojo.*;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.IOException;
 import java.security.*;
@@ -52,9 +53,8 @@ public class Util implements InitializingBean {
         return getServerURL() + "/texture/hash/" + hash;
     }
     public String getServerURL() {
-        //TODO 需要优化CDN
-        return (dataUtil.isUseHttps() ? "https://" : "http://")
-                + dataUtil.getServerDomain() + ":" + dataUtil.getPort();
+        // TODO
+        return ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
     }
     public String signature(String value) {
         try {
