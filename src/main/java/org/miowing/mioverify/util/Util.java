@@ -53,7 +53,6 @@ public class Util implements InitializingBean {
         return getServerURL() + "/texture/hash/" + hash;
     }
     public String getServerURL() {
-        // TODO
         return ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
     }
     public String signature(String value) {
