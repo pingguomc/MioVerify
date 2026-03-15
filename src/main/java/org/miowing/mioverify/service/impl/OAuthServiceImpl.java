@@ -17,6 +17,7 @@ import org.miowing.mioverify.util.TokenUtil;
 import org.miowing.mioverify.util.Util;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.function.BiConsumer;
 
@@ -60,6 +61,7 @@ public class OAuthServiceImpl implements OAuthService {
 
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public OAuthCallbackResp handleOAuthLogin(
             @NonNull String provider, @NonNull String providerUserId, String providerUsername) {
 
@@ -98,6 +100,7 @@ public class OAuthServiceImpl implements OAuthService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void unbind(@NonNull String userId, @NonNull String provider) {
         BiConsumer<User, String> setter = PROVIDER_SETTER.get(provider);
         if ( setter == null ) {
@@ -127,6 +130,7 @@ public class OAuthServiceImpl implements OAuthService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void handleOAuthBind(String userId, String provider, String providerUserId) {
 
         BiConsumer<User, String> setter = PROVIDER_SETTER.get(provider);

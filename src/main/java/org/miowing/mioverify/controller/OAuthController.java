@@ -2,6 +2,7 @@ package org.miowing.mioverify.controller;
 
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.miowing.mioverify.annotation.RateLimit;
 import org.miowing.mioverify.dao.UserDao;
 import org.miowing.mioverify.exception.FeatureNotSupportedException;
 import org.miowing.mioverify.exception.InvalidTokenException;
@@ -82,6 +83,7 @@ public class OAuthController {
      * 用临时 token 换取应用 accessToken（Yggdrasil 风格）
      */
     @PostMapping("/authenticate")
+    @RateLimit(maxRequests = 10, windowSeconds = 60, keyPrefix = "oauth_auth")
     public AuthResp authenticate(@RequestBody OAuthAuthReq req) {
         if ( ! dataUtil.isOAuthEnabled() ) {
             throw new FeatureNotSupportedException();
@@ -167,6 +169,7 @@ public class OAuthController {
      * 4. 前端拿到 URL 后直接跳转，剩下的全交给 Spring Security
      */
     @PostMapping("/bind/{provider}")
+    @RateLimit(maxRequests = 5, windowSeconds = 60, keyPrefix = "oauth_bind")
     public ResponseEntity<?> bindProvider(
             @PathVariable String provider,
             @RequestHeader("Authorization") String authorization) {
@@ -230,6 +233,7 @@ public class OAuthController {
      */
     @Deprecated
     @PostMapping("/signout")
+    @RateLimit(maxRequests = 5, windowSeconds = 60, keyPrefix = "oauth_signout")
     public ResponseEntity<?> signOut(@RequestHeader("Authorization") String authorization) {
         if ( ! dataUtil.isOAuthEnabled() ) {
             throw new FeatureNotSupportedException();

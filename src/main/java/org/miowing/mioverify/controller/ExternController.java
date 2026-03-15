@@ -1,6 +1,7 @@
 package org.miowing.mioverify.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.miowing.mioverify.annotation.RateLimit;
 import org.miowing.mioverify.exception.DuplicateProfileNameException;
 import org.miowing.mioverify.exception.DuplicateUserNameException;
 import org.miowing.mioverify.exception.FeatureNotSupportedException;
@@ -15,6 +16,7 @@ import org.miowing.mioverify.util.Util;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,6 +37,8 @@ public class ExternController {
     private DataUtil dataUtil;
     @Deprecated(since = "1.4.0")
     @PostMapping("/register/user")
+    @RateLimit(maxRequests = 3, windowSeconds = 300, keyPrefix = "register_user")
+    @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<?> registerUser(@RequestBody UserRegisterReq req) {
         if (!dataUtil.isAllowRegister()) {
             throw new FeatureNotSupportedException();
@@ -59,6 +63,8 @@ public class ExternController {
     }
 
     @PostMapping("/register/profile")
+    @RateLimit(maxRequests = 5, windowSeconds = 300, keyPrefix = "register_profile")
+    @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<?> registerProfile(@RequestBody ProfileRegisterReq req) {
         if (!dataUtil.isAllowRegister()) {
             throw new FeatureNotSupportedException();

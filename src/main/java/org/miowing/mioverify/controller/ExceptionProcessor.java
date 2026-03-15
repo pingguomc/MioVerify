@@ -2,6 +2,7 @@ package org.miowing.mioverify.controller;
 
 import org.miowing.mioverify.exception.*;
 import org.miowing.mioverify.pojo.response.ErrResp;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -79,6 +80,18 @@ public class ExceptionProcessor {
     public ResponseEntity<?> handleServerError() {
         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         //
+    }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<?> handleRateLimit(RateLimitExceededException ex) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Retry-After", String.valueOf(ex.getRetryAfterSeconds()));
+        return new ResponseEntity<>(
+                new ErrResp().setError(ErrType.FORBIDDEN_OP.v())
+                        .setErrorMessage("Too many requests. Please try again later."),
+                headers,
+                HttpStatus.TOO_MANY_REQUESTS
+        );
     }
 
 }

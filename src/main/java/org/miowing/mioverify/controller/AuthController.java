@@ -1,6 +1,7 @@
 package org.miowing.mioverify.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.miowing.mioverify.annotation.RateLimit;
 import org.miowing.mioverify.exception.InvalidTokenException;
 import org.miowing.mioverify.exception.NoProfileException;
 import org.miowing.mioverify.exception.ProfileMismatchException;
@@ -41,6 +42,7 @@ public class AuthController {
     @Autowired
     private RedisService redisService;
     @PostMapping("/authenticate")
+    @RateLimit(maxRequests = 5, windowSeconds = 60, keyPrefix = "auth_login")
     public AuthResp authenticate(@RequestBody AuthReq req) {
         User user = userService.getLogin(req.getUsername(), req.getPassword(), true);
         List<Profile> aProfiles = profileService.getByUserId(user.getId());
@@ -61,6 +63,7 @@ public class AuthController {
                 .setUser(req.getRequestUser() ? util.userToShow(user) : null);
     }
     @PostMapping("/refresh")
+    @RateLimit(maxRequests = 10, windowSeconds = 60, keyPrefix = "auth_refresh")
     public AuthResp refresh(@RequestBody RefreshReq req) {
         AToken aToken = tokenUtil.verifyAccessToken(req.getAccessToken(), req.getClientToken(), false);
         if (aToken == null) {
@@ -106,6 +109,7 @@ public class AuthController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
     @PostMapping("/signout")
+    @RateLimit(maxRequests = 5, windowSeconds = 60, keyPrefix = "auth_signout")
     public ResponseEntity<?> signout(@RequestBody AuthReq req) {
         User user = userService.getLogin(req.getUsername(), req.getPassword());
         redisService.clearToken(user.getId());
