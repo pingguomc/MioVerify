@@ -99,7 +99,7 @@ mybatis-plus:
 
 
 mioverify:
-  # OAuth 前端回调地址 (全部uri均可修改)
+  # OAuth 前端回调地址 (路径不可修改)
   oauth-frontend-redirect-uri: "https://your-frontend.com/oauth/callback"
 
   # 跨域配置，生产环境中必须设置
