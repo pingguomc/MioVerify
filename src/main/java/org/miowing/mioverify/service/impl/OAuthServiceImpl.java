@@ -67,7 +67,7 @@ public class OAuthServiceImpl implements OAuthService {
         BiConsumer<User, String> setter = PROVIDER_SETTER.get(provider);
         String fieldName = PROVIDER_FIELD.get(provider);
         if ( setter == null || fieldName == null ) {
-            throw new FeatureNotSupportedException(); //不支持的 OAuth 提供商
+            throw new FeatureNotSupportedException(); // 不支持的 OAuth 提供商
         }
         if ( providerUserId.isBlank() ) {
             throw new IllegalArgumentException(); // 提供商用户 ID 不能为空
@@ -77,9 +77,13 @@ public class OAuthServiceImpl implements OAuthService {
                 new QueryWrapper<User>().eq(fieldName, providerUserId)
         );
 
-        if ( user == null ) {
+        boolean isNewUser = (user == null);
+        if ( isNewUser ) {
             user = createUser(provider, providerUserId, providerUsername, setter);
         }
+
+        boolean hasProfile = ! profileService.getByUserId(user.getId()).isEmpty();
+        boolean needProfile = isNewUser || ! hasProfile;
 
         // 生成临时令牌并存入 Redis
         String tempToken = Util.genUUID();
@@ -89,17 +93,31 @@ public class OAuthServiceImpl implements OAuthService {
                 .setTempToken(tempToken)
                 .setProvider(provider)
                 .setProviderUsername(providerUsername)
-                .setNeedProfile(false); //暂时设置为 false
+                .setNeedProfile(needProfile)
+                .setUserId(needProfile ? user.getId() : null); // 需要创建 Profile 时返回 userId
     }
 
     @Override
     public void unbind(@NonNull String userId, @NonNull String provider) {
         BiConsumer<User, String> setter = PROVIDER_SETTER.get(provider);
         if ( setter == null ) {
-            throw new FeatureNotSupportedException();//不支持的 OAuth 提供商
+            throw new FeatureNotSupportedException(); // 不支持的 OAuth 提供商
         }
 
         User user = userDao.selectById(userId);
+
+        if ( user == null ) {
+            throw new FeatureNotSupportedException(); // 用户不存在
+        }
+
+        // 检查是否为唯一认证方式（有密码或有其他绑定的 Provider）
+        boolean hasPassword = user.getPassword() != null && ! user.getPassword().isBlank();
+        int boundProviderCount = countBoundProviders(user);
+
+        // 如果没有密码且只有一个绑定的 Provider，则不允许解绑
+        if ( ! hasPassword && boundProviderCount <= 1 ) {
+            throw new FeatureNotSupportedException(); // 无法解绑唯一的认证方式
+        }
 
         // 清空对应的 provider ID
         setter.accept(user, null);
@@ -139,25 +157,59 @@ public class OAuthServiceImpl implements OAuthService {
 
     //-----------
 
-    /**
-     * 创建新用户
-     */
+    /** 创建新用户 */
     private User createUser(String provider, String providerUserId, String providerUsername,
                             BiConsumer<User, String> setter) {
 
         User newUser = new User();
         newUser.setId(Util.genUUID()); // 使用工具类生成 ID
+
         // 用户名处理：优先使用提供商返回的用户名，否则生成默认名
-        String username = (providerUsername != null && ! providerUsername.isBlank())
+        String baseUsername = (providerUsername != null && ! providerUsername.isBlank())
                 ? providerUsername
                 : "user_" + providerUserId.substring(0, Math.min(8, providerUserId.length()));
+
+        // 检查用户名是否已存在，如存在则添加随机后缀
+        String username = ensureUniqueUsername(baseUsername);
+
         newUser.setUsername(username);
+
         // 设置对应的 provider ID
         setter.accept(newUser, providerUserId);
 
-        log.info("New user register: {}", newUser.getUsername());
+        log.info("New Oauth user register: {}", newUser.getUsername());
         userService.save(newUser);
         return newUser;
+    }
+
+    /** 统计用户已绑定的 Provider 数量 */
+    private int countBoundProviders(User user) {
+        int count = 0;
+        if ( user.getGithubId() != null && ! user.getGithubId().isBlank() ) count++;
+        if ( user.getMicrosoftId() != null && ! user.getMicrosoftId().isBlank() ) count++;
+        if ( user.getMcjpgId() != null && ! user.getMcjpgId().isBlank() ) count++;
+        if ( user.getCustomId() != null && ! user.getCustomId().isBlank() ) count++;
+        return count;
+    }
+
+    /** 确保用户名唯一，如果已存在则添加随机后缀 */
+    private String ensureUniqueUsername(String baseUsername) {
+        String username = baseUsername;
+        int maxAttempts = 10;
+
+        for ( int i = 0; i < maxAttempts; i++ ) {
+            User existing = userDao.selectOne(
+                    new QueryWrapper<User>().eq("username", username)
+            );
+            if ( existing == null ) {
+                return username; // 用户名可用
+            }
+            // 用户名已存在，添加随机后缀
+            username = baseUsername + "_" + Util.genUUID().substring(0, 6);
+        }
+
+        // 极端情况：多次尝试后仍冲突，使用 UUID
+        return baseUsername + "_" + Util.genUUID();
     }
 
 }

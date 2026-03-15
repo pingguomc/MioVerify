@@ -17,8 +17,8 @@ server:
     key-alias: boot
   servlet:
     application-display-name: MioVerify Alpha
-  # 自动适配 Nginx 和 Cloudflare
-  forward-headers-strategy: framework
+  # 自动适配 Nginx 和 Cloudflare，如果你使用了这两个东西，请设为 native 或 framework(更建议) 。而不是 none
+  forward-headers-strategy: none
 
 
 spring:

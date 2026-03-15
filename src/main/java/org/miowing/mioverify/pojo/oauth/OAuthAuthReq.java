@@ -17,6 +17,6 @@ public class OAuthAuthReq {
     private @Nullable String clientToken;
 
     /** 是否在响应中返回用户信息 */
-    private Boolean requestUser;
+    private boolean requestUser;
 
 }

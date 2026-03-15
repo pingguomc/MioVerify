@@ -1,6 +1,5 @@
 package org.miowing.mioverify.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.miowing.mioverify.dao.UserDao;
@@ -27,6 +26,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -117,7 +118,7 @@ public class OAuthController {
                 .setClientToken(cToken)
                 .setAvailableProfiles(profiles)
                 .setSelectedProfile(bindProfile)
-                .setUser(req.getRequestUser() ? util.userToShow(user) : null);
+                .setUser(req.isRequestUser() ? util.userToShow(user) : null);
     }
 
     /**
@@ -189,10 +190,14 @@ public class OAuthController {
         String nonce = Util.genUUID();
         redisService.saveOAuthBindNonce(nonce, user.getId());
 
-        String serverUrl = (dataUtil.isUseHttps() ? "https://" : "http://")
-                + dataUtil.getServerDomain() + ":" + dataUtil.getPort();
-        String authUrl = serverUrl + "/oauth/authorize/" + provider
-                + "?bind_nonce=" + nonce;
+        String serverUrl = ServletUriComponentsBuilder
+                .fromCurrentContextPath()
+                .toUriString();
+
+        String authUrl = UriComponentsBuilder.fromHttpUrl(serverUrl)
+                .pathSegment("oauth", "authorize", provider)
+                .queryParam("bind_nonce", nonce)
+                .toUriString();
 
         log.info("User {} initiate bind for provider: {}", user.getId(), provider);
 
@@ -256,7 +261,13 @@ public class OAuthController {
             throw new UnauthorizedException(); // 401
         }
 
-        User user = userDao.selectOne(new LambdaQueryWrapper<User>().eq(User :: getUsername, aToken.name()));
+        // 通过绑定的 Profile ID 获取用户 ID，避免用户名重复
+        Profile profile = profileService.getById(aToken.bindProfile());
+        if ( profile == null ) {
+            throw new UnauthorizedException(); // 401
+        }
+
+        User user = userDao.selectById(profile.getBindUser());
 
         if ( user == null ) {
             throw new UnauthorizedException(); // 401
