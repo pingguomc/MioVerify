@@ -16,7 +16,7 @@ public class OAuthAuthReq {
     /** 客户端 Token，为空时由服务端生成 */
     private @Nullable String clientToken;
 
-    /** 是否在响应中返回用户信息 */
-    private Boolean requestUser;
+    /** 是否在响应中返回用户信息，默认为 false */
+    private boolean requestUser;
 
 }

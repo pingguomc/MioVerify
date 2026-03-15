@@ -117,7 +117,7 @@ public class OAuthController {
                 .setClientToken(cToken)
                 .setAvailableProfiles(profiles)
                 .setSelectedProfile(bindProfile)
-                .setUser(req.getRequestUser() ? util.userToShow(user) : null);
+                .setUser(req.isRequestUser() ? util.userToShow(user) : null);
     }
 
     /**
@@ -189,8 +189,7 @@ public class OAuthController {
         String nonce = Util.genUUID();
         redisService.saveOAuthBindNonce(nonce, user.getId());
 
-        String serverUrl = (dataUtil.isUseHttps() ? "https://" : "http://")
-                + dataUtil.getServerDomain() + ":" + dataUtil.getPort();
+        String serverUrl = buildServerUrl();
         String authUrl = serverUrl + "/oauth/authorize/" + provider
                 + "?bind_nonce=" + nonce;
 
@@ -239,13 +238,17 @@ public class OAuthController {
 
     /**
      * 从 Authorization 头提供的 accessToken 解析用户
+     * <p>
+     * 通过 Token 中绑定的 Profile ID 获取用户 ID，再通过用户 ID 查询用户，
+     * 避免因用户名重复导致的查询错误。
+     * </p>
      *
      * @param authorization Http 请求 Authorization头
      *
      * @return {@link User} 实例
      */
     private @NonNull User getUserFromAuthorization(String authorization) {
-        if ( authorization == null || ! authorization.startsWith("Bearer ") ) {
+        if ( authorization == null || !authorization.startsWith("Bearer ") ) {
             throw new UnauthorizedException(); // 401
         }
 
@@ -256,13 +259,40 @@ public class OAuthController {
             throw new UnauthorizedException(); // 401
         }
 
-        User user = userDao.selectOne(new LambdaQueryWrapper<User>().eq(User :: getUsername, aToken.name()));
+        // 通过绑定的 Profile ID 获取用户 ID，避免用户名重复问题
+        Profile profile = profileService.getById(aToken.bindProfile());
+        if ( profile == null ) {
+            throw new UnauthorizedException(); // 401
+        }
+
+        User user = userDao.selectById(profile.getBindUser());
 
         if ( user == null ) {
             throw new UnauthorizedException(); // 401
         }
 
         return user;
+    }
+
+    /**
+     * 构建服务器 URL，智能处理端口号
+     * <p>
+     * 标准端口（HTTP:80, HTTPS:443）不会添加到 URL 中
+     * </p>
+     */
+    private String buildServerUrl() {
+        boolean useHttps = dataUtil.isUseHttps();
+        String domain = dataUtil.getServerDomain();
+        int port = dataUtil.getPort();
+
+        String scheme = useHttps ? "https" : "http";
+        int defaultPort = useHttps ? 443 : 80;
+
+        // 标准端口不需要显式添加
+        if ( port == defaultPort ) {
+            return scheme + "://" + domain;
+        }
+        return scheme + "://" + domain + ":" + port;
     }
 
 }

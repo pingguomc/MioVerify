@@ -149,12 +149,15 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer :: disable)
 
+                // 使用 IF_REQUIRED 策略以支持 OAuth2 授权流程中的 state 参数存储
+                // OAuth2 需要 Session 来存储 OAuth2AuthorizationRequest（包含 state 参数）
+                // 如果使用 STATELESS，OAuth2 登录回调时将无法恢复授权请求，导致 state 验证失败
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 )
 
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll() //放行全部接口
+                        .anyRequest().permitAll() // 放行全部接口
                 );
 
         if ( dataUtil.isOAuthEnabled() ) {
