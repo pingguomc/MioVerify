@@ -13,7 +13,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
@@ -24,6 +23,8 @@ import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequest
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -132,7 +133,7 @@ public class SecurityConfig {
      *
      * <p>过滤链处理顺序：</p>
      * <ol>
-     *   <li>禁用 CSRF</li>
+     *   <li>设置 CSRF </li>
      *   <li>设置无状态 Session（不创建 HttpSession）</li>
      *   <li>放行所有请求</li>
      *   <li>若 OAuth 总开关开启，注册 OAuth2 登录流程</li>
@@ -147,6 +148,20 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, ClientRegistrationRepository clientRegistrationRepository) throws Exception {
         http
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                        .ignoringRequestMatchers(
+                                "/authserver/**",
+                                "/sessionserver/**",
+                                "/minecraftservices/**",
+                                "/oauth/callback/*",
+                                "/api/**",
+                                "/extern/**",
+                                "/texture/**"
+                        )
+                )
+
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 )
@@ -343,7 +358,7 @@ public class SecurityConfig {
     /** 工具方法：重定向并带一个查询参数 */
     private void redirect(
             jakarta.servlet.http.HttpServletResponse response,
-            String baseUrl, String key, String value) throws java.io.IOException {
+            String baseUrl, String key, String value) {
 
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
                 .queryParam(key, value)
