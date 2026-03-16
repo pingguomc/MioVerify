@@ -13,7 +13,15 @@ CREATE TABLE IF NOT EXISTS `profiles` (
 CREATE TABLE IF NOT EXISTS `users` (
   `id` varchar(64) NOT NULL,
   `username` varchar(255) NOT NULL,
-  `password` varchar(255) NOT NULL,
+  `password` varchar(255) NULL DEFAULT NULL,
   `preferred_lang` varchar(8) NULL DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  `microsoft_id` VARCHAR(255) NULL,
+  `github_id` VARCHAR(255) NULL,
+  `mcjpg_id` VARCHAR(255) NULL,
+  `custom_id` VARCHAR(255) NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE (`microsoft_id`),
+  UNIQUE (`github_id`),
+  UNIQUE (`mcjpg_id`),
+  UNIQUE (`custom_id`)
 );

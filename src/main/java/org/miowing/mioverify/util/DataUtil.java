@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
 import java.nio.file.Path;
 import java.time.Duration;
 
@@ -55,8 +56,33 @@ public class DataUtil implements InitializingBean {
     private boolean profileStrict;
     @Value("${mioverify.extern.multi-profile-name}")
     private boolean multiProfileName;
+
+    //以下为跨域设置
+    @Value("${mioverify.cors.enabled}")
+    private boolean corsEnabled;
+    @Value("${mioverify.cors.allowed-origin}")
+    private String corsAllowedOrigin;
+
+    //以下为 Oauth 设置
+    @Value("${spring.security.oauth2.enabled}")
+    private boolean oAuthEnabled;
+    @Value("${spring.security.oauth2.client.registration.github.enabled}")
+    private boolean oAuthGitHubEnabled;
+    @Value("${spring.security.oauth2.client.registration.microsoft.enabled}")
+    private boolean oAuthMicrosoftEnabled;
+    @Value("${spring.security.oauth2.client.registration.mcjpg.enabled}")
+    private boolean oAuthMcjpgEnabled;
+    @Value("${spring.security.oauth2.client.registration.custom.enabled}")
+    private boolean oAuthCustomEnabled;
+    @Value("${spring.security.oauth2.expire:5m}")
+    private Duration oauthExpire;
+    @Value("${mioverify.oauth-frontend-redirect-uri}")
+    private String oauthFrontendRedirectUri;
+
     @Override
     public void afterPropertiesSet() throws Exception {
         log.info("Reading data from application file...");
+        //
     }
+
 }

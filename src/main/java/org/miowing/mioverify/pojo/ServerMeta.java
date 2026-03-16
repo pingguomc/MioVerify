@@ -10,6 +10,10 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+/**
+ * <h1>服务器元数据</h1>
+ * 返回 Json 格式
+ */
 @Data
 @Accessors(chain = true)
 @JsonInclude(JsonInclude.Include.NON_EMPTY)

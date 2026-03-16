@@ -8,24 +8,36 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-import java.util.Set;
 
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * <h1>Redis 操作</h1>
+ */
 @Service
 public class RedisServiceImpl implements RedisService {
+
     @Autowired
     private StringRedisTemplate redisTemplate;
     @Autowired
     private DataUtil dataUtil;
+
+    private static final String OAUTH_TEMP_TOKEN_PREF = "oauth:temp:";
+    private static final String OAUTH_BIND_NONCE_PREF = "oauth:bind:";
+
     @Override
     public void saveToken(String token, String userId) {
         redisTemplate.opsForValue().set(TokenUtil.TOKEN_PREF + token, userId);
         redisTemplate.opsForValue().set(TokenUtil.TMARK_PREF + token, "", dataUtil.getTokenInvalid());
         redisTemplate.opsForHash().put(TokenUtil.USERID_PREF + userId, token, "");
     }
+
     @Override
     public boolean checkToken(String token) {
         return Boolean.TRUE.equals(redisTemplate.hasKey(TokenUtil.TOKEN_PREF + token));
     }
+
     @Override
     public void removeToken(String token) {
         String userId = redisTemplate.opsForValue().get(TokenUtil.TOKEN_PREF + token);
@@ -39,6 +51,7 @@ public class RedisServiceImpl implements RedisService {
             hops.delete(userIdP, token);
         }
     }
+
     @Override
     public void clearToken(String userId) {
         String userIdP = TokenUtil.USERID_PREF + userId;
@@ -49,8 +62,34 @@ public class RedisServiceImpl implements RedisService {
         }
         redisTemplate.delete(userIdP);
     }
+
     @Override
     public void saveSession(String serverId, String token) {
         redisTemplate.opsForValue().set(SessionUtil.SESSION_PREF + serverId, token, dataUtil.getSessionExpire());
     }
+
+
+    @Override
+    public void saveOAuthTempToken(String tempToken, String userId) {
+        String key = OAUTH_TEMP_TOKEN_PREF + tempToken;
+        redisTemplate.opsForValue().set(key, userId, dataUtil.getOauthExpire().getSeconds(), TimeUnit.SECONDS);
+    }
+
+    @Override
+    public String consumeOAuthTempToken(String tempToken) {
+        String key = OAUTH_TEMP_TOKEN_PREF + tempToken;
+        return redisTemplate.opsForValue().getAndDelete(key);
+    }
+
+    @Override
+    public void saveOAuthBindNonce(String nonce, String userId) {
+        String key = OAUTH_BIND_NONCE_PREF + nonce;
+        redisTemplate.opsForValue().set(key, userId, dataUtil.getOauthExpire().getSeconds(), TimeUnit.SECONDS);
+    }
+
+    @Override
+    public String consumeOAuthBindNonce(String nonce) {
+        return redisTemplate.opsForValue().getAndDelete(OAUTH_BIND_NONCE_PREF + nonce);
+    }
+
 }

@@ -14,7 +14,9 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
     @Override
     public User getLogin(String username, String password) {
        return getLogin(username, password, false);
+        //
     }
+
     @Override
     public User getLogin(String username, String password, boolean exception) {
         LambdaQueryWrapper<User> lqw = new LambdaQueryWrapper<>();
@@ -25,10 +27,27 @@ public class UserServiceImpl extends ServiceImpl<UserDao, User> implements UserS
         }
         return user;
     }
+
     @Override
     public @Nullable User getLoginNoPwd(String username) {
         LambdaQueryWrapper<User> lqw = new LambdaQueryWrapper<>();
         lqw.eq(User::getUsername, username);
         return getOne(lqw);
     }
+
+    @Override
+    public User getByProviderUserId(String provider, String providerUserId) {
+        LambdaQueryWrapper<User> lqw = new LambdaQueryWrapper<>();
+        switch ( provider.toLowerCase() ) {
+            case "github" -> lqw.eq(User :: getGithubId, providerUserId);
+            case "microsoft" -> lqw.eq(User :: getMicrosoftId, providerUserId);
+            case "mcjpg" -> lqw.eq(User :: getMcjpgId, providerUserId);
+            case "custom" -> lqw.eq(User :: getCustomId, providerUserId);
+            default -> {
+                return null;
+            }
+        }
+        return getOne(lqw);
+    }
+
 }

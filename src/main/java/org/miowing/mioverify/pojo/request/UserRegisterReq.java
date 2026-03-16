@@ -3,6 +3,7 @@ package org.miowing.mioverify.pojo.request;
 import lombok.Data;
 
 @Data
+@Deprecated(since = "1.4.0")
 public class UserRegisterReq {
     private String username;
     private String password;

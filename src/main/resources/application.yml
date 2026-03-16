@@ -17,7 +17,62 @@ server:
     key-alias: boot
   servlet:
     application-display-name: MioVerify Alpha
+  # 自动适配 Nginx 和 Cloudflare，如果你使用了这两个东西，请设为 native 或 framework(更建议) 。而不是 none
+  forward-headers-strategy: none
+
+
 spring:
+
+  security:
+    oauth2:
+      enabled: true
+      # State 和 TempToken 有效期
+      expire: 5m
+      client:
+        registration:
+
+          github:
+            enabled: true
+            client-id: "your-github-client-id"
+            client-secret: "your-github-client-secret"
+            redirect-uri: "{baseUrl}/oauth/callback/github" # 不可修改！
+            scope: read:user, user:email
+
+          microsoft:
+            enabled: true
+            client-id: "client-id"
+            client-secret: "client-secret"
+            redirect-uri: "{baseUrl}/oauth/callback/microsoft" # 不可修改！
+            scope: openid, profile, email
+
+          mcjpg:
+            enabled: true
+            client-id: "client-id"
+            client-secret: "client-secret"
+            redirect-uri: "{baseUrl}/oauth/callback/mcjpg" # 不可修改！
+            scope: openid, profile, email
+
+          custom:
+            enabled: true
+            client-id: "client-id"
+            client-secret: "client-secret"
+            redirect-uri: "{baseUrl}/oauth/callback/custom" # 不可修改！
+            scope: read
+            client-name: "custom"
+
+        provider:
+          microsoft:
+            issuer-uri: "https://login.microsoftonline.com/common/v2.0"
+            user-name-attribute: name
+          mcjpg:
+            issuer-uri: "https://sso.mcjpg.org"
+            user-name-attribute: sub
+          custom:
+            authorization-uri: "https://example.com"
+            token-uri: "https://example.com"
+            user-info-uri: "https://example.com"
+            user-name-attribute: sub
+
   servlet:
     multipart:
       # 允许文件上传
@@ -27,7 +82,7 @@ spring:
       # 最大上传请求尺寸
       max-request-size: 2MB
   profiles:
-    # 选择数据库，"test-sqlite" 或 "test-mysql"
+    # 选择数据库，"test-sqlite" 或 "test-mysql"，这两个在下面配置
     active: test-sqlite
   data:
     # 设置Redis配置
@@ -36,10 +91,24 @@ spring:
       # url: ...
       host: localhost
       port: 6379
+
+
 mybatis-plus:
   global-config:
     banner: false
+
+
 mioverify:
+  # OAuth 前端回调地址 (路径不可修改)
+  oauth-frontend-redirect-uri: "https://your-frontend.com/oauth/callback"
+
+  # 跨域配置，生产环境中必须设置
+  cors:
+    # 是否启用跨域配置（若在 CDN 中配置或不跨域，可以不启用）
+    enabled: false
+    # 允许跨域的域名（* 表示允许所有，但生产环境不建议。）
+    allowed-origin: "https://your-domain.com"
+
   # 扩展API配置项
   extern:
     register:
@@ -60,6 +129,7 @@ mioverify:
         key: admin123098
     # 是否允许重复角色名(仅发生在注册和修改)
     multi-profile-name: true
+
   token:
     # 给角色(Profile)签名的文本
     signature: 'abcd273nsi179a'
@@ -67,9 +137,11 @@ mioverify:
     expire: 10m
     # token永久过期时间
     invalid: 1h
+
   session:
     # session过期时间
     expire: 6m
+
   security:
     # 公钥路径
     public-key-loc: keys/public.pem
@@ -79,12 +151,14 @@ mioverify:
     sign-algorithm: SHA1withRSA
     # 批量获取角色(Profile)API最大限制数量
     profile-batch-limit: 5
+
   texture:
     # 材质存储位置
     storage-loc: textures
     # 默认皮肤存储位置
     default-skin-loc: textures/skin/default.png
-    # 服务器元数据，详见Yggdrasil API
+
+  # 服务器元数据，详见Yggdrasil API
   props:
     meta:
       # 将会显示在启动器
@@ -92,7 +166,7 @@ mioverify:
       # 实现的名称
       implementation-name: mioverify
       # 实现的版本
-      implementation-version: '0.0.1'
+      implementation-version: '1.4.0'
       links:
         # 主页地址
         home-page: https://www.baidu.com

@@ -10,6 +10,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.listener.KeyExpirationEventMessageListener;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.stereotype.Component;
+
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -23,14 +24,18 @@ import java.nio.charset.StandardCharsets;
 public class TokenExpiredListener extends KeyExpirationEventMessageListener {
     @Autowired
     private StringRedisTemplate redisTemplate;
+
     public TokenExpiredListener(RedisMessageListenerContainer listenerContainer) {
         super(listenerContainer);
+        //
     }
+
     @Override
     public void afterPropertiesSet() throws Exception {
         log.info("Tokens expired Listener hooked.");
         super.afterPropertiesSet();
     }
+
     @Override
     protected void doHandleMessage(Message message) {
         String key = new String(message.getBody(), StandardCharsets.UTF_8);
@@ -49,4 +54,5 @@ public class TokenExpiredListener extends KeyExpirationEventMessageListener {
         }
         super.doHandleMessage(message);
     }
+
 }
