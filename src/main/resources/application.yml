@@ -37,13 +37,15 @@ spring:
             client-secret: "your-github-client-secret"
             redirect-uri: "{baseUrl}/oauth/callback/github" # 不可修改！
             scope: read:user, user:email
+            authorization-grant-type: authorization_code
 
           microsoft:
-            enabled: true
+            enabled: false
             client-id: "client-id"
             client-secret: "client-secret"
             redirect-uri: "{baseUrl}/oauth/callback/microsoft" # 不可修改！
             scope: openid, profile, email
+            authorization-grant-type: authorization_code
 
           mcjpg:
             enabled: true
@@ -51,6 +53,7 @@ spring:
             client-secret: "client-secret"
             redirect-uri: "{baseUrl}/oauth/callback/mcjpg" # 不可修改！
             scope: openid, profile, email
+            authorization-grant-type: authorization_code
 
           custom:
             enabled: true
@@ -59,6 +62,7 @@ spring:
             redirect-uri: "{baseUrl}/oauth/callback/custom" # 不可修改！
             scope: read
             client-name: "custom"
+            authorization-grant-type: authorization_code
 
         provider:
           microsoft:
